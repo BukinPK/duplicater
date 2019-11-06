@@ -54,9 +54,9 @@ def print_all(data, match, deleted=[]):
 def get_one(data, matches, deleted=[], passed=[]):
     items = [(int(k), v) for k, v in matches.items()]
     for k, v in items:
-        post_numbers = []
         if k in passed:
             continue
+        post_numbers = []
         temp = []
         if k not in deleted:
             root_str = set(int(k) for v2 in v.values() for k in v2.keys())
@@ -67,7 +67,7 @@ def get_one(data, matches, deleted=[], passed=[]):
 
         matched_items = [(int(k), v) for k, v in v.items()]
         for k2, v2 in matched_items:
-            if k2 in deleted:
+            if k2 in deleted or k2 in passed:
                 continue
             temp.append(f'{"-"*40}\n' + '\n'.join([
                 ('>> ' if sn2 in v2.values() else '   ')

@@ -1,6 +1,7 @@
 from telegram.ext import (Updater, CommandHandler, MessageHandler,
                           CallbackQueryHandler, Filters)
 from telegram import Document as TgDocument, File
+from telegram.error import BadRequest
 import io
 from mongoengine import *
 from html import escape
@@ -26,7 +27,6 @@ class User(Document):
     final = BooleanField(default=False)
 
 def start(upd, ctx):
-    print('start')
     if not User.objects(id=upd.message.chat.id):
         User(id=upd.message.chat.id).save()
 
@@ -43,16 +43,22 @@ def edit(upd, ctx):
     if action == 'del' and number not in user.deleted:
         user.deleted.append(number)
         user.save()
-    elif action == 'pass':
+    elif action == 'pass' and number not in user.passed:
         user.passed.append(number)
         user.save()
     post_numbers, text = duplicater.get_one(
-        user.data, user.matches, user.deleted, passed=user.passed)
+        user.data, user.matches, user.deleted, user.passed)
 
     if post_numbers:
         m = markup.edit(post_numbers)
-        upd.effective_message.edit_text(
-            f'<pre>{escape(text)}</pre>', reply_markup=m, parse_mode='HTML')
+        try:
+            upd.effective_message.edit_text(
+                f'<pre>{escape(text)}</pre>', reply_markup=m, parse_mode='HTML')
+        except BadRequest as ex:
+            if ex.message.startswith('Message is not modified:') \
+                    and action == 'pass':
+                upd.callback_query.data = f'edit pass {post_numbers[1]}'
+                return edit(upd, ctx)
     else:
         upd.effective_message.edit_text(
             '<i>Редактирование окончено.</i>', reply_markup=None,
